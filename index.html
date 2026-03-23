@@ -1,335 +1,263 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pro Image Gallery (Advanced)</title>
-    <style>
-      :root {
-        --bg: #0f172a;
-        --card: #1e293b;
-        --accent: #38bdf8;
-      }
-      body {
-        margin: 0;
-        font-family: system-ui;
-        background: var(--bg);
-        color: white;
-      }
-      header {
-        text-align: center;
-        padding: 16px;
-        font-size: 26px;
-        font-weight: 700;
-      }
-      .search-bar {
-        display: flex;
-        justify-content: center;
-        padding: 10px;
-      }
-      input {
-        padding: 10px;
-        border-radius: 8px;
-        border: none;
-        width: 250px;
-      }
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Image Gallery</title>
+<style>
+:root { --bg:#0f172a; --card:#1e293b; --accent:#38bdf8; }
+body { margin:0; font-family:system-ui; background:var(--bg); color:white; }
+header { text-align:center; padding:18px; font-size:28px; font-weight:700; }
+.container { max-width:1200px; margin:auto; }
 
-      .tabs {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-      .tabs button {
-        padding: 8px 14px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        background: var(--card);
-        color: white;
-      }
-      .tabs button.active {
-        background: var(--accent);
-        color: black;
-      }
+.search-bar { display:flex; justify-content:center; padding:10px; gap:10px; }
+input, select {
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  background:#1e293b;
+  color:white;
+}
 
-      /* DROPDOWN CATEGORY */
-      .category-select {
-        display: flex;
-        justify-content: center;
-        margin: 10px;
-      }
-      select {
-        padding: 10px;
-        border-radius: 8px;
-        border: none;
-        background: var(--card);
-        color: white;
-      }
+.slideshow {
+  width:95%; height:400px; margin:20px auto;
+  border-radius:16px; overflow:hidden;
+  box-shadow:0 20px 40px rgba(0,0,0,.6);
+}
+.slideshow img { width:100%; height:100%; object-fit:cover; }
 
-      /* SLIDESHOW */
-      .slideshow {
-        width: 95%;
-        margin: 20px auto;
-        height: 480px;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      }
-      .slideshow img {
-        width: 100%;
-        height: 100%;
-        object-fit :cover;
-      }
+.gallery {
+  column-count:4; column-gap:15px; padding:20px;
+}
+@media(max-width:1000px){ .gallery{column-count:3;} }
+@media(max-width:700px){ .gallery{column-count:2;} }
+@media(max-width:500px){ .gallery{column-count:1;} }
 
-      .gallery {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 15px;
-        padding: 20px;
-      }
-      .card {
-        background: var(--card);
-        border-radius: 12px;
-        overflow: hidden;
-        position: relative;
-        transition: 0.3s;
-      }
-      .card:hover {
-        transform: scale(1.03);
-      }
-      .card img {
-        width: 100%;
-        height: 200px;
-        object-fit: cover;
-        cursor: pointer;
-      }
-      .actions {
-        position: absolute;
-        bottom: 10px;
-        left: 10px;
-      }
-      button {
-        background: var(--accent);
-        border: none;
-        padding: 6px 10px;
-        border-radius: 6px;
-        cursor: pointer;
-      }
+.card {
+  background:var(--card);
+  border-radius:14px;
+  margin-bottom:15px;
+  overflow:hidden;
+  break-inside: avoid;
+  position:relative;
+}
+.card img { width:100%; display:block; }
 
-      .saved-panel {
-        padding: 10px;
-      }
-      .saved-panel img {
-        width: 90px;
-        margin: 5px;
-        border-radius: 6px;
-        cursor: pointer;
-      }
+.actions {
+  position:absolute; bottom:10px; left:10px;
+  display:flex; gap:6px;
+}
+button {
+  background:var(--accent);
+  border:none;
+  padding:6px 10px;
+  border-radius:8px;
+  cursor:pointer;
+}
 
-      .modal {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.9);
-        display: none;
-        justify-content: center;
-        align-items: center;
-      }
-      .modal img {
-        max-width: 90%;
-        max-height: 90%;
-      }
-    </style>
-  </head>
-  <body>
-    <header>Pro Image Gallery</header>
+/* SAVED GALLERY */
+.saved-section { padding:20px; }
+.saved-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:10px;
+}
+.saved-grid img {
+  width:100%; height:150px;
+  object-fit:cover;
+  border-radius:10px;
+  cursor:pointer;
+}
 
-    <div class="search-bar">
-      <input id="search" placeholder="Search images..." />
-    </div>
+.modal {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.95);
+  display:none; justify-content:center; align-items:center;
+}
+.modal img { max-width:95%; max-height:95%; }
 
-    <div class="tabs">
-      <button class="active" onclick="setMode('trending', this)">
-        Trending
-      </button>
-      <button onclick="setMode('editor', this)">Editor Picks</button>
-      <button onclick="setMode('saved', this)">Saved Highlights</button>
-    </div>
+.loader { text-align:center; padding:20px; }
+</style>
+</head>
+<body>
+<div class="container">
+<header>📌 Image Gallery</header>
 
-    <!-- DROPDOWN CATEGORY -->
-    <div class="category-select">
-      <select id="categoryDropdown">
-        <option value="nature">Nature</option>
-        <option value="technology">Tech</option>
-        <option value="cars">Cars</option>
-        <option value="animals">Animals</option>
-      </select>
-    </div>
+<div class="search-bar">
+  <input id="search" placeholder="Search images..." />
+  <select id="category">
+    <option value="nature">Nature</option>
+    <option value="technology">Tech</option>
+    <option value="cars">Cars</option>
+    <option value="animals">Animals</option>
+     <option value="flowers">Flowers</option>
+    <option value="fruits">Fruits</option>
+  </select>
+</div>
 
-    <div class="slideshow">
-      <img id="slideImg" />
-    </div>
+<div class="slideshow">
+  <img id="slideImg" />
+</div>
 
-    <div class="gallery" id="gallery"></div>
+<div class="gallery" id="gallery"></div>
+<div class="loader" id="loader">Loading...</div>
 
-    <h3 style="padding-left: 20px">Saved</h3>
-    <div class="saved-panel" id="saved"></div>
+<h2 style="padding-left:20px">⭐ Saved Gallery</h2>
+<div class="saved-section">
+  <div class="saved-grid" id="savedGrid"></div>
+</div>
 
-    <div class="modal" id="modal" onclick="closeModal()">
-      <img id="modalImg" />
-    </div>
+</div>
 
-    <script>
-      const ACCESS_KEY = "wBuzKdKjcSXU-k0ceMN4MHpUUbZF353ojiv31PbXBaY";
-      let images = [];
-      let mode = "trending";
-      let category = "nature";
-      let slideIndex = 0;
-      let slideTimer;
-      let debounceTimer;
+<div class="modal" id="modal" onclick="closeModal()">
+  <img id="modalImg" />
+</div>
 
-      async function fetchImages(query = "nature") {
-        try {
-          const res = await fetch(
-            `https://api.unsplash.com/search/photos?query=${query}&per_page=40&client_id=${ACCESS_KEY}`,
-          );
-          const data = await res.json();
+<script>
+const ACCESS_KEY = 'wBuzKdKjcSXU-k0ceMN4MHpUUbZF353ojiv31PbXBaY';
+let images = [];
+let page = 1;
+let query = 'nature';
+let loading = false;
+let slideIndex = 0;
+let slideTimer;
+let debounceTimer;
 
-          if (!data || !Array.isArray(data.results)) return;
+async function fetchImages(reset=false) {
+  if(loading) return;
+  loading = true;
+  document.getElementById('loader').style.display='block';
 
-          images = data.results.map((img) => ({
-            url: img.urls.regular,
-            likes: img.likes,
-            date: new Date(img.created_at),
-          }));
+  if(reset) {
+    images = [];
+    page = 1;
+    document.getElementById('gallery').innerHTML='';
+  }
 
-          render();
-          startSlideshow();
-        } catch (e) {
-          console.error(e);
-        }
-      }
+  try {
+    const res = await fetch(`https://api.unsplash.com/search/photos?query=${query}&page=${page}&per_page=20&client_id=${ACCESS_KEY}`);
+    const data = await res.json();
 
-      function startSlideshow() {
-        clearInterval(slideTimer);
+    if(!data || !Array.isArray(data.results)) return;
 
-        let source = [];
+    const newImages = data.results.map(img => img.urls.regular);
+    images = [...images, ...newImages];
 
-        if (mode === "trending")
-          source = [...images].sort((a, b) => b.likes - a.likes);
-        if (mode === "editor") source = images.slice(0, 5);
-        if (mode === "saved") {
-          const saved = JSON.parse(localStorage.getItem("saved") || "[]");
-          source = saved.map((url) => ({ url }));
-        }
+    render(newImages);
+    startSlideshow();
+    page++;
 
-        if (source.length === 0) return;
+  } catch(e) {
+    console.error(e);
+  }
 
-        slideIndex = 0;
+  loading = false;
+  document.getElementById('loader').style.display='none';
+}
 
-        slideTimer = setInterval(() => {
-          document.getElementById("slideImg").src = source[slideIndex].url;
-          slideIndex = (slideIndex + 1) % source.length;
-        }, 2500);
-      }
+function startSlideshow() {
+  clearInterval(slideTimer);
+  const top = images.slice(0,5);
+  if(top.length === 0) return;
 
-      function render() {
-        const g = document.getElementById("gallery");
-        g.innerHTML = "";
+  slideIndex = 0;
+  slideTimer = setInterval(()=>{
+    document.getElementById('slideImg').src = top[slideIndex];
+    slideIndex = (slideIndex + 1) % top.length;
+  }, 2500);
+}
 
-        images.forEach((img) => {
-          const div = document.createElement("div");
-          div.className = "card";
-          div.innerHTML = `
-      <img src="${img.url}" onclick="openModal('${img.url}')" />
+function render(newImgs) {
+  const g = document.getElementById('gallery');
+
+  newImgs.forEach(url => {
+    const div = document.createElement('div');
+    div.className='card';
+    div.innerHTML=`
+      <img src="${url}" onclick="openModal('${url}')" />
       <div class="actions">
-        <button onclick="saveImage('${img.url}')">💾</button>
-        <button onclick="download('${img.url}')">⬇</button>
+        <button onclick="saveImage('${url}')">💾</button>
+        <button onclick="downloadImage('${url}')">⬇</button>
       </div>
     `;
-          g.appendChild(div);
-        });
-      }
+    g.appendChild(div);
+  });
+}
 
-      function saveImage(url) {
-        let saved = JSON.parse(localStorage.getItem("saved") || "[]");
-        if (!saved.includes(url)) saved.push(url);
-        localStorage.setItem("saved", JSON.stringify(saved));
-        loadSaved();
-      }
+// SAVE SYSTEM (FIXED)
+function saveImage(url) {
+  let saved = JSON.parse(localStorage.getItem('saved')||'[]');
+  if(!saved.includes(url)) saved.push(url);
+  localStorage.setItem('saved', JSON.stringify(saved));
+  loadSaved();
+}
 
-      function removeImage(url) {
-        let saved = JSON.parse(localStorage.getItem("saved") || "[]");
-        saved = saved.filter((i) => i !== url);
-        localStorage.setItem("saved", JSON.stringify(saved));
-        loadSaved();
-      }
+function loadSaved() {
+  const saved = JSON.parse(localStorage.getItem('saved')||'[]');
+  const grid = document.getElementById('savedGrid');
+  grid.innerHTML='';
 
-      function loadSaved() {
-        const saved = JSON.parse(localStorage.getItem("saved") || "[]");
-        const container = document.getElementById("saved");
-        container.innerHTML = "";
+  saved.forEach(url => {
+    const img = document.createElement('img');
+    img.src = url;
+    img.onclick = () => openModal(url);
+    grid.appendChild(img);
+  });
+}
 
-        saved.forEach((s) => {
-          const img = document.createElement("img");
-          img.src = s;
-          img.onclick = () => removeImage(s);
-          container.appendChild(img);
-        });
-      }
+window.addEventListener('scroll', () => {
+  if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
+    fetchImages();
+  }
+});
 
-      function setMode(m, el) {
-        mode = m;
-        document
-          .querySelectorAll(".tabs button")
-          .forEach((b) => b.classList.remove("active"));
-        el.classList.add("active");
-        startSlideshow();
-      }
+function openModal(url) {
+  document.getElementById('modal').style.display='flex';
+  document.getElementById('modalImg').src=url;
+}
+function closeModal() {
+  document.getElementById('modal').style.display='none';
+}
 
-      // DROPDOWN CHANGE HANDLER
-      const dropdown = document.getElementById("categoryDropdown");
-      dropdown.addEventListener("change", (e) => {
-        category = e.target.value;
-        fetchImages(category);
-      });
+async function downloadImage(url) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'image.jpg';
+    link.click();
+  } catch(e) {
+    console.error(e);
+  }
+}
 
-      function openModal(url) {
-        document.getElementById("modal").style.display = "flex";
-        document.getElementById("modalImg").src = url;
-      }
-      function closeModal() {
-        document.getElementById("modal").style.display = "none";
-      }
+// search
+const searchEl = document.getElementById('search');
+searchEl.addEventListener('input', e=>{
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(()=>{
+    query = e.target.value || 'nature';
+    fetchImages(true);
+  }, 500);
+});
 
-      function download(url) {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "img.jpg";
-        a.click();
-      }
+// category
+const categoryEl = document.getElementById('category');
+categoryEl.addEventListener('change', e=>{
+  query = e.target.value;
+  fetchImages(true);
+});
 
-      // search
-      document.getElementById("search").addEventListener("input", (e) => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          fetchImages(e.target.value || category);
-        }, 500);
-      });
+// tests
+function runTests() {
+  console.assert(Array.isArray(images), 'Images should be array');
+  console.assert(document.getElementById('savedGrid'), 'Saved grid exists');
+}
 
-      // tests
-      function runTests() {
-        console.assert(Array.isArray(images), "Images should be array");
-        console.assert(images.length >= 0, "Images should load");
-        console.assert(
-          typeof category === "string",
-          "Category should be string",
-        );
-      }
-
-      loadSaved();
-      fetchImages();
-      setTimeout(runTests, 2000);
-    </script>
-  </body>
+loadSaved();
+fetchImages();
+setTimeout(runTests, 2000);
+</script>
+</body>
 </html>
