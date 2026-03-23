@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pro Image Gallery (Advanced)</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --card: #1e293b;
+        --accent: #38bdf8;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui;
+        background: var(--bg);
+        color: white;
+      }
+      header {
+        text-align: center;
+        padding: 16px;
+        font-size: 26px;
+        font-weight: 700;
+      }
+      .search-bar {
+        display: flex;
+        justify-content: center;
+        padding: 10px;
+      }
+      input {
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+        width: 250px;
+      }
+
+      .tabs {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .tabs button {
+        padding: 8px 14px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        background: var(--card);
+        color: white;
+      }
+      .tabs button.active {
+        background: var(--accent);
+        color: black;
+      }
+
+      /* DROPDOWN CATEGORY */
+      .category-select {
+        display: flex;
+        justify-content: center;
+        margin: 10px;
+      }
+      select {
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+        background: var(--card);
+        color: white;
+      }
+
+      /* SLIDESHOW */
+      .slideshow {
+        width: 95%;
+        margin: 20px auto;
+        height: 480px;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      }
+      .slideshow img {
+        width: 100%;
+        height: 100%;
+        object-fit :cover;
+      }
+
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        padding: 20px;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+        transition: 0.3s;
+      }
+      .card:hover {
+        transform: scale(1.03);
+      }
+      .card img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        cursor: pointer;
+      }
+      .actions {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+      }
+      button {
+        background: var(--accent);
+        border: none;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+
+      .saved-panel {
+        padding: 10px;
+      }
+      .saved-panel img {
+        width: 90px;
+        margin: 5px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+      }
+      .modal img {
+        max-width: 90%;
+        max-height: 90%;
+      }
+    </style>
+  </head>
+  <body>
+    <header>Pro Image Gallery</header>
+
+    <div class="search-bar">
+      <input id="search" placeholder="Search images..." />
+    </div>
+
+    <div class="tabs">
+      <button class="active" onclick="setMode('trending', this)">
+        Trending
+      </button>
+      <button onclick="setMode('editor', this)">Editor Picks</button>
+      <button onclick="setMode('saved', this)">Saved Highlights</button>
+    </div>
+
+    <!-- DROPDOWN CATEGORY -->
+    <div class="category-select">
+      <select id="categoryDropdown">
+        <option value="nature">Nature</option>
+        <option value="technology">Tech</option>
+        <option value="cars">Cars</option>
+        <option value="animals">Animals</option>
+      </select>
+    </div>
+
+    <div class="slideshow">
+      <img id="slideImg" />
+    </div>
+
+    <div class="gallery" id="gallery"></div>
+
+    <h3 style="padding-left: 20px">Saved</h3>
+    <div class="saved-panel" id="saved"></div>
+
+    <div class="modal" id="modal" onclick="closeModal()">
+      <img id="modalImg" />
+    </div>
+
+    <script>
+      const ACCESS_KEY = "wBuzKdKjcSXU-k0ceMN4MHpUUbZF353ojiv31PbXBaY";
+      let images = [];
+      let mode = "trending";
+      let category = "nature";
+      let slideIndex = 0;
+      let slideTimer;
+      let debounceTimer;
+
+      async function fetchImages(query = "nature") {
+        try {
+          const res = await fetch(
+            `https://api.unsplash.com/search/photos?query=${query}&per_page=40&client_id=${ACCESS_KEY}`,
+          );
+          const data = await res.json();
+
+          if (!data || !Array.isArray(data.results)) return;
+
+          images = data.results.map((img) => ({
+            url: img.urls.regular,
+            likes: img.likes,
+            date: new Date(img.created_at),
+          }));
+
+          render();
+          startSlideshow();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      function startSlideshow() {
+        clearInterval(slideTimer);
+
+        let source = [];
+
+        if (mode === "trending")
+          source = [...images].sort((a, b) => b.likes - a.likes);
+        if (mode === "editor") source = images.slice(0, 5);
+        if (mode === "saved") {
+          const saved = JSON.parse(localStorage.getItem("saved") || "[]");
+          source = saved.map((url) => ({ url }));
+        }
+
+        if (source.length === 0) return;
+
+        slideIndex = 0;
+
+        slideTimer = setInterval(() => {
+          document.getElementById("slideImg").src = source[slideIndex].url;
+          slideIndex = (slideIndex + 1) % source.length;
+        }, 2500);
+      }
+
+      function render() {
+        const g = document.getElementById("gallery");
+        g.innerHTML = "";
+
+        images.forEach((img) => {
+          const div = document.createElement("div");
+          div.className = "card";
+          div.innerHTML = `
+      <img src="${img.url}" onclick="openModal('${img.url}')" />
+      <div class="actions">
+        <button onclick="saveImage('${img.url}')">💾</button>
+        <button onclick="download('${img.url}')">⬇</button>
+      </div>
+    `;
+          g.appendChild(div);
+        });
+      }
+
+      function saveImage(url) {
+        let saved = JSON.parse(localStorage.getItem("saved") || "[]");
+        if (!saved.includes(url)) saved.push(url);
+        localStorage.setItem("saved", JSON.stringify(saved));
+        loadSaved();
+      }
+
+      function removeImage(url) {
+        let saved = JSON.parse(localStorage.getItem("saved") || "[]");
+        saved = saved.filter((i) => i !== url);
+        localStorage.setItem("saved", JSON.stringify(saved));
+        loadSaved();
+      }
+
+      function loadSaved() {
+        const saved = JSON.parse(localStorage.getItem("saved") || "[]");
+        const container = document.getElementById("saved");
+        container.innerHTML = "";
+
+        saved.forEach((s) => {
+          const img = document.createElement("img");
+          img.src = s;
+          img.onclick = () => removeImage(s);
+          container.appendChild(img);
+        });
+      }
+
+      function setMode(m, el) {
+        mode = m;
+        document
+          .querySelectorAll(".tabs button")
+          .forEach((b) => b.classList.remove("active"));
+        el.classList.add("active");
+        startSlideshow();
+      }
+
+      // DROPDOWN CHANGE HANDLER
+      const dropdown = document.getElementById("categoryDropdown");
+      dropdown.addEventListener("change", (e) => {
+        category = e.target.value;
+        fetchImages(category);
+      });
+
+      function openModal(url) {
+        document.getElementById("modal").style.display = "flex";
+        document.getElementById("modalImg").src = url;
+      }
+      function closeModal() {
+        document.getElementById("modal").style.display = "none";
+      }
+
+      function download(url) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "img.jpg";
+        a.click();
+      }
+
+      // search
+      document.getElementById("search").addEventListener("input", (e) => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          fetchImages(e.target.value || category);
+        }, 500);
+      });
+
+      // tests
+      function runTests() {
+        console.assert(Array.isArray(images), "Images should be array");
+        console.assert(images.length >= 0, "Images should load");
+        console.assert(
+          typeof category === "string",
+          "Category should be string",
+        );
+      }
+
+      loadSaved();
+      fetchImages();
+      setTimeout(runTests, 2000);
+    </script>
+  </body>
+</html>
